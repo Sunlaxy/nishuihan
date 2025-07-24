@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>约战数据展示</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .search-box, .filter-box {
+            margin-bottom: 10px;
+        }
+        input, select {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th {
+            background-color: #ff0000;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            position: relative;
+        }
+        th:hover {
+            background-color: #d90000;
+        }
+        th::after {
+            content: "↓";
+            position: absolute;
+            right: 8px;
+            opacity: 0.5;
+        }
+        th.asc::after {
+            content: "↑";
+        }
+        td {
+            padding: 8px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+        }
+        tr:hover {
+            background-color: #fcff00 !important;
+        }
+        tr.selected {
+            background-color: #ff0000 !important;
+            color: white;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .pagination button {
+            margin: 0 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .pagination button.active {
+            background-color: #ff0000;
+            color: white;
+            border-color: #ff0000;
+        }
+        /* 职业背景色 */
+        .潮光 { background-color: #99c4e7; }
+        .玄机 { background-color: #eadeac; }
+        .龙吟 { background-color: #73b29d; }
+        .沧澜 { background-color: #b2bced; }
+        .铁衣 { background-color: #e3a769; }
+        .九灵 { background-color: #8e50e1; color: white; }
+        .神相 { background-color: #3d367c; color: white; }
+        .素问 { background-color: #eaadb2; }
+        .血河 { background-color: #d95167; color: white; }
+        .碎梦 { background-color: #a6c9cf; }
+    </style>
+</head>
+<body>
+    <h1>仗剑 - 约战数据</h1>
+    
+    <div class="controls">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="搜索玩家名字...">
+            <button onclick="searchPlayer()">搜索</button>
+        </div>
+        <div class="filter-box">
+            <select id="classFilter" onchange="filterByClass()">
+                <option value="">所有职业</option>
+                <option value="潮光">潮光</option>
+                <option value="玄机">玄机</option>
+                <option value="龙吟">龙吟</option>
+                <option value="沧澜">沧澜</option>
+                <option value="铁衣">铁衣</option>
+                <option value="九灵">九灵</option>
+                <option value="神相">神相</option>
+                <option value="素问">素问</option>
+                <option value="血河">血河</option>
+                <option value="碎梦">碎梦</option>
+            </select>
+        </div>
+    </div>
+    
+    <table id="dataTable">
+        <thead>
+            <tr>
+                <th onclick="sortTable(0)">玩家名字</th>
+                <th onclick="sortTable(1)">职业</th>
+                <th onclick="sortTable(2)">击败</th>
+                <th onclick="sortTable(3)">助攻</th>
+                <th onclick="sortTable(4)">资源</th>
+                <th onclick="sortTable(5)">对玩家伤害</th>
+                <th onclick="sortTable(6)">对建筑伤害</th>
+                <th onclick="sortTable(7)">治疗值</th>
+                <th onclick="sortTable(8)">承受伤害</th>
+                <th onclick="sortTable(9)">重伤</th>
+                <th onclick="sortTable(10)">化羽/清泉</th>
+                <th onclick="sortTable(11)">焚骨</th>
+                <th onclick="sortTable(12)">KD</th>
+                <th onclick="sortTable(13)">拆D</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            <!-- 数据将通过JavaScript动态填充 -->
+        </tbody>
+    </table>
+    
+    <div class="pagination" id="pagination">
+        <!-- 分页按钮将通过JavaScript动态生成 -->
+    </div>
+
+    <script>
+        // 原始数据（仅提取上半部分）
+        const rawData = [
+            { name: "小忆衣", class: "素问", kills: 0, assists: 405, resources: 0, playerDamage: 1274601, buildingDamage: 108736, healing: 82844868, damageTaken: 40378600, deaths: 1, feathers: 14, bones: 0 },
+            { name: "猫酿", class: "素问", kills: 1, assists: 376, resources: 0, playerDamage: 1143069, buildingDamage: 79071, healing: 80837567, damageTaken: 26616049, deaths: 4, feathers: 14, bones: 0 },
+            { name: "发尾", class: "沧澜", kills: 12, assists: 150, resources: 0, playerDamage: 45773484, buildingDamage: 1946316, healing: 0, damageTaken: 26681558, deaths: 8, feathers: 0, bones: 0 },
+            { name: "玄林", class: "潮光", kills: 25, assists: 192, resources: 0, playerDamage: 66115784, buildingDamage: 2816879, healing: 158320, damageTaken: 24304791, deaths: 6, feathers: 7, bones: 0 },
+            { name: "御神", class: "铁衣", kills: 4, assists: 55, resources: 0, playerDamage: 7581015, buildingDamage: 54916016, healing: 152190, damageTaken: 41183447, deaths: 2, feathers: 0, bones: 0 },
+            { name: "酒旧", class: "九灵", kills: 18, assists: 245, resources: 0, playerDamage: 46316278, buildingDamage: 4878833, healing: 6000, damageTaken: 19178297, deaths: 8, feathers: 0, bones: 111 },
+            { name: "无梦", class: "沧澜", kills: 23, assists: 166, resources: 0, playerDamage: 49149029, buildingDamage: 2110124, healing: 48086, damageTaken: 43941895, deaths: 6, feathers: 0, bones: 0 },
+            { name: "有问题", class: "九灵", kills: 26, assists: 264, resources: 780, playerDamage: 67463724, buildingDamage: 732695, healing: 10000, damageTaken: 33662175, deaths: 7, feathers: 0, bones: 127 },
+            { name: "一笑忘川", class: "神相", kills: 32, assists: 146, resources: 0, playerDamage: 47798675, buildingDamage: 2482318, healing: 309814, damageTaken: 30112282, deaths: 10, feathers: 0, bones: 0 },
+            { name: "揉碎", class: "素问", kills: 2, assists: 443, resources: 780, playerDamage: 2365079, buildingDamage: 94041, healing: 118244268, damageTaken: 57766020, deaths: 8, feathers: 15, bones: 0 },
+            { name: "权力", class: "碎梦", kills: 61, assists: 103, resources: 780, playerDamage: 85654278, buildingDamage: 371995, healing: 227273, damageTaken: 23076472, deaths: 15, feathers: 0, bones: 0 },
+            { name: "小本", class: "龙吟", kills: 38, assists: 232, resources: 0, playerDamage: 83875252, buildingDamage: 6406138, healing: 120909, damageTaken: 17264605, deaths: 4, feathers: 0, bones: 0 },
+            { name: "小宁大王", class: "素问", kills: 0, assists: 288, resources: 0, playerDamage: 1289152, buildingDamage: 615833, healing: 99120539, damageTaken: 35830953, deaths: 5, feathers: 4, bones: 0 },
+            { name: "魔鱼", class: "素问", kills: 0, assists: 198, resources: 0, playerDamage: 185665, buildingDamage: 1686047, healing: 61080886, damageTaken: 14280271, deaths: 0, feathers: 17, bones: 0 },
+            { name: "一滴温柔", class: "玄机", kills: 31, assists: 198, resources: 0, playerDamage: 65221836, buildingDamage: 2907203, healing: 129244, damageTaken: 29554582, deaths: 7, feathers: 0, bones: 0 },
+            { name: "你的麻薯", class: "潮光", kills: 36, assists: 254, resources: 780, playerDamage: 74487111, buildingDamage: 1204065, healing: 343778, damageTaken: 22446350, deaths: 7, feathers: 6, bones: 0 },
+            { name: "会意", class: "龙吟", kills: 3, assists: 29, resources: 0, playerDamage: 7057355, buildingDamage: 93272096, healing: 0, damageTaken: 15072016, deaths: 7, feathers: 0, bones: 0 },
+            { name: "莜莜鹿鸣", class: "潮光", kills: 2, assists: 49, resources: 0, playerDamage: 9052246, buildingDamage: 55692490, healing: 0, damageTaken: 20300332, deaths: 10, feathers: 2, bones: 0 },
+            { name: "猫澪", class: "沧澜", kills: 37, assists: 141, resources: 780, playerDamage: 69113839, buildingDamage: 835797, healing: 18000, damageTaken: 43741931, deaths: 9, feathers: 0, bones: 0 },
+            { name: "不应有恨", class: "龙吟", kills: 4, assists: 49, resources: 0, playerDamage: 9478354, buildingDamage: 74778266, healing: 0, damageTaken: 23214613, deaths: 7, feathers: 0, bones: 0 },
+            { name: "姒艾", class: "素问", kills: 2, assists: 416, resources: 0, playerDamage: 1606446, buildingDamage: 154418, healing: 110917086, damageTaken: 38149761, deaths: 4, feathers: 14, bones: 0 },
+            { name: "星绘满月", class: "素问", kills: 0, assists: 237, resources: 0, playerDamage: 262162, buildingDamage: 77774, healing: 95211037, damageTaken: 22737626, deaths: 2, feathers: 4, bones: 0 },
+            { name: "柳堆烟", class: "神相", kills: 20, assists: 209, resources: 780, playerDamage: 45226186, buildingDamage: 3789170, healing: 34000, damageTaken: 39895347, deaths: 9, feathers: 0, bones: 0 },
+            { name: "爱人", class: "素问", kills: 0, assists: 440, resources: 0, playerDamage: 1687052, buildingDamage: 32254, healing: 143780413, damageTaken: 56238188, deaths: 3, feathers: 11, bones: 0 },
+            { name: "淋溱", class: "血河", kills: 20, assists: 179, resources: 0, playerDamage: 76938696, buildingDamage: 110513, healing: 3543933, damageTaken: 61422056, deaths: 14, feathers: 0, bones: 0 },
+            { name: "剑决", class: "潮光", kills: 3, assists: 39, resources: 0, playerDamage: 6016967, buildingDamage: 67335470, healing: 372225, damageTaken: 12059604, deaths: 1, feathers: 4, bones: 0 },
+            { name: "心流", class: "龙吟", kills: 27, assists: 214, resources: 780, playerDamage: 72034010, buildingDamage: 1046064, healing: 0, damageTaken: 23602668, deaths: 17, feathers: 0, bones: 0 },
+            { name: "赤水砯", class: "龙吟", kills: 24, assists: 258, resources: 780, playerDamage: 85780092, buildingDamage: 3772384, healing: 34000, damageTaken: 38226019, deaths: 7, feathers: 0, bones: 0 },
+            { name: "绘雾", class: "九灵", kills: 28, assists: 210, resources: 0, playerDamage: 57473648, buildingDamage: 2394251, healing: 12000, damageTaken: 24952299, deaths: 17, feathers: 0, bones: 63 },
+            { name: "小姨子", class: "龙吟", kills: 4, assists: 30, resources: 0, playerDamage: 8483215, buildingDamage: 71145530, healing: 122288, damageTaken: 23727006, deaths: 4, feathers: 0, bones: 0 },
+            { name: "小心悸", class: "血河", kills: 30, assists: 220, resources: 0, playerDamage: 84988661, buildingDamage: 2557683, healing: 3137931, damageTaken: 46823456, deaths: 7, feathers: 0, bones: 0 },
+            { name: "青痕", class: "素问", kills: 0, assists: 421, resources: 0, playerDamage: 794527, buildingDamage: 55498, healing: 139269720, damageTaken: 55704725, deaths: 8, feathers: 16, bones: 0 },
+            { name: "宸梦", class: "龙吟", kills: 5, assists: 48, resources: 0, playerDamage: 12432479, buildingDamage: 78132468, healing: 141125, damageTaken: 28533966, deaths: 2, feathers: 0, bones: 0 },
+            { name: "盏盏", class: "潮光", kills: 1, assists: 44, resources: 0, playerDamage: 9687428, buildingDamage: 56453836, healing: 288782, damageTaken: 14162615, deaths: 2, feathers: 7, bones: 0 },
+            { name: "氿唐", class: "铁衣", kills: 2, assists: 113, resources: 0, playerDamage: 6619280, buildingDamage: 3544640, healing: 1268464, damageTaken: 88821119, deaths: 4, feathers: 0, bones: 0 },
+            { name: "瓷神", class: "铁衣", kills: 3, assists: 234, resources: 0, playerDamage: 13212275, buildingDamage: 202244, healing: 1460916, damageTaken: 188020200, deaths: 4, feathers: 0, bones: 0 },
+            { name: "小玲", class: "玄机", kills: 2, assists: 49, resources: 0, playerDamage: 10772949, buildingDamage: 87173474, healing: 0, damageTaken: 11392536, deaths: 8, feathers: 0, bones: 0 },
+            { name: "苛刻", class: "素问", kills: 0, assists: 211, resources: 0, playerDamage: 769556, buildingDamage: 624497, healing: 69744442, damageTaken: 18419984, deaths: 1, feathers: 8, bones: 0 },
+            { name: "竹早静弥丷", class: "铁衣", kills: 3, assists: 116, resources: 0, playerDamage: 12655829, buildingDamage: 4444324, healing: 920889, damageTaken: 146305287, deaths: 1, feathers: 0, bones: 0 },
+            { name: "汐蝶", class: "潮光", kills: 5, assists: 264, resources: 0, playerDamage: 19258017, buildingDamage: 11893842, healing: 2106447, damageTaken: 59478755, deaths: 3, feathers: 10, bones: 0 },
+            { name: "脆菜", class: "铁衣", kills: 1, assists: 24, resources: 0, playerDamage: 1910214, buildingDamage: 29532454, healing: 4000, damageTaken: 43285464, deaths: 0, feathers: 0, bones: 0 },
+            { name: "遇事问春风", class: "碎梦", kills: 45, assists: 91, resources: 0, playerDamage: 53643917, buildingDamage: 389688, healing: 32000, damageTaken: 21884314, deaths: 13, feathers: 0, bones: 0 },
+            { name: "欧包", class: "潮光", kills: 1, assists: 37, resources: 0, playerDamage: 3443593, buildingDamage: 43496584, healing: 444407, damageTaken: 10614326, deaths: 5, feathers: 8, bones: 0 },
+            { name: "保存", class: "潮光", kills: 1, assists: 12, resources: 0, playerDamage: 2886190, buildingDamage: 57479478, healing: 550896, damageTaken: 7660421, deaths: 3, feathers: 11, bones: 0 },
+            { name: "覆盖", class: "神相", kills: 23, assists: 232, resources: 0, playerDamage: 79022474, buildingDamage: 3058204, healing: 399905, damageTaken: 33623488, deaths: 6, feathers: 0, bones: 0 },
+            { name: "毁灭", class: "血河", kills: 28, assists: 199, resources: 780, playerDamage: 83893829, buildingDamage: 478263, healing: 3907434, damageTaken: 48791789, deaths: 14, feathers: 0, bones: 0 },
+            { name: "池神", class: "素问", kills: 0, assists: 260, resources: 0, playerDamage: 165605, buildingDamage: 0, healing: 56949797, damageTaken: 19414517, deaths: 1, feathers: 8, bones: 0 },
+            { name: "骗子", class: "玄机", kills: 1, assists: 38, resources: 0, playerDamage: 7470814, buildingDamage: 76989279, healing: 116087, damageTaken: 9056952, deaths: 3, feathers: 0, bones: 0 },
+            { name: "猫灵", class: "素问", kills: 0, assists: 163, resources: 0, playerDamage: 353024, buildingDamage: 44613, healing: 64656502, damageTaken: 22163182, deaths: 4, feathers: 17, bones: 0 },
+            { name: "清高", class: "神相", kills: 25, assists: 176, resources: 1820, playerDamage: 73342744, buildingDamage: 4439905, healing: 766479, damageTaken: 20282424, deaths: 13, feathers: 0, bones: 0 },
+            { name: "今天也秒睡", class: "素问", kills: 0, assists: 171, resources: 0, playerDamage: 437062, buildingDamage: 300466, healing: 67715513, damageTaken: 27467368, deaths: 3, feathers: 3, bones: 0 },
+            { name: "終散", class: "九灵", kills: 44, assists: 352, resources: 0, playerDamage: 97492274, buildingDamage: 974473, healing: 40000, damageTaken: 19282182, deaths: 7, feathers: 0, bones: 131 },
+            { name: "一逍", class: "碎梦", kills: 0, assists: 16, resources: 0, playerDamage: 4544446, buildingDamage: 106042278, healing: 0, damageTaken: 16629926, deaths: 14, feathers: 0, bones: 0 },
+            { name: "挽花", class: "碎梦", kills: 20, assists: 163, resources: 0, playerDamage: 57532907, buildingDamage: 157405, healing: 22000, damageTaken: 40506903, deaths: 9, feathers: 0, bones: 0 },
+            { name: "摸一嗷", class: "神相", kills: 50, assists: 189, resources: 0, playerDamage: 103368588, buildingDamage: 3855364, healing: 520438, damageTaken: 35295087, deaths: 9, feathers: 0, bones: 0 },
+            { name: "敔昇", class: "龙吟", kills: 27, assists: 199, resources: 0, playerDamage: 63507344, buildingDamage: 499932, healing: 14000, damageTaken: 28737784, deaths: 10, feathers: 0, bones: 0 },
+            { name: "结约", class: "神相", kills: 44, assists: 273, resources: 780, playerDamage: 156034448, buildingDamage: 1302051, healing: 365319, damageTaken: 48621426, deaths: 5, feathers: 0, bones: 0 },
+            { name: "小兎", class: "素问", kills: 0, assists: 251, resources: 0, playerDamage: 837345, buildingDamage: 0, healing: 62150908, damageTaken: 28840983, deaths: 3, feathers: 4, bones: 0 },
+            { name: "帅气公子临少", class: "九灵", kills: 2, assists: 75, resources: 0, playerDamage: 8122479, buildingDamage: 75247721, healing: 234725, damageTaken: 24855300, deaths: 2, feathers: 0, bones: 22 },
+            { name: "聪明的石头人", class: "血河", kills: 13, assists: 176, resources: 0, playerDamage: 52304990, buildingDamage: 4327006, healing: 2979859, damageTaken: 53112106, deaths: 8, feathers: 0, bones: 0 }
+        ];
+
+        // 计算KD和拆D
+        function calculateKDandDD(data) {
+            return data.map(player => {
+                // 计算KD
+                let kills = player.kills === 0 ? 0.1 : player.kills;
+                let deaths = player.deaths === 0 ? 0.5 : player.deaths;
+                let kd = (kills / deaths).toFixed(2);
+                
+                // 计算拆D
+                let buildingDamage = player.buildingDamage === 0 ? 1 : player.buildingDamage;
+                deaths = player.deaths === 0 ? 0.5 : player.deaths;
+                let dd = Math.round(buildingDamage / deaths);
+                
+                return {
+                    ...player,
+                    kd: kd,
+                    dd: dd
+                };
+            });
+        }
+
+        // 处理后的数据
+        const processedData = calculateKDandDD(rawData);
+        let currentData = [...processedData];
+        let currentPage = 1;
+        const rowsPerPage = 100;
+        let sortColumn = null;
+        let sortDirection = 1; // 1 for ascending, -1 for descending
+
+        // 初始化表格
+        function initTable() {
+            renderTable();
+            renderPagination();
+        }
+
+        // 渲染表格
+        function renderTable() {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+            
+            const start = (currentPage - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+            const pageData = currentData.slice(start, end);
+            
+            pageData.forEach(player => {
+                const row = document.createElement('tr');
+                row.className = player.class;
+                row.innerHTML = `
+                    <td>${player.name}</td>
+                    <td>${player.class}</td>
+                    <td>${player.kills}</td>
+                    <td>${player.assists}</td>
+                    <td>${player.resources}</td>
+                    <td>${player.playerDamage}</td>
+                    <td>${player.buildingDamage}</td>
+                    <td>${player.healing}</td>
+                    <td>${player.damageTaken}</td>
+                    <td>${player.deaths}</td>
+                    <td>${player.feathers}</td>
+                    <td>${player.bones}</td>
+                    <td>${player.kd}</td>
+                    <td>${player.dd}</td>
+                `;
+                
+                // 添加点击事件
+                row.addEventListener('click', function() {
+                    // 移除所有选中状态
+                    document.querySelectorAll('#tableBody tr').forEach(r => {
+                        r.classList.remove('selected');
+                    });
+                    // 添加选中状态
+                    this.classList.add('selected');
+                });
+                
+                tableBody.appendChild(row);
+            });
+        }
+
+        // 渲染分页
+        function renderPagination() {
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = '';
+            
+            const totalPages = Math.ceil(currentData.length / rowsPerPage);
+            
+            if (totalPages <= 1) return;
+            
+            // 上一页按钮
+            const prevButton = document.createElement('button');
+            prevButton.textContent = '上一页';
+            prevButton.disabled = currentPage === 1;
+            prevButton.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderTable();
+                    renderPagination();
+                }
+            });
+            pagination.appendChild(prevButton);
+            
+            // 页码按钮
+            for (let i = 1; i <= totalPages; i++) {
+                const pageButton = document.createElement('button');
+                pageButton.textContent = i;
+                pageButton.className = currentPage === i ? 'active' : '';
+                pageButton.addEventListener('click', () => {
+                    currentPage = i;
+                    renderTable();
+                    renderPagination();
+                });
+                pagination.appendChild(pageButton);
+            }
+            
+            // 下一页按钮
+            const nextButton = document.createElement('button');
+            nextButton.textContent = '下一页';
+            nextButton.disabled = currentPage === totalPages;
+            nextButton.addEventListener('click', () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    renderTable();
+                    renderPagination();
+                }
+            });
+            pagination.appendChild(nextButton);
+        }
+
+        // 搜索玩家
+        function searchPlayer() {
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            if (searchInput.trim() === '') {
+                currentData = [...processedData];
+            } else {
+                currentData = processedData.filter(player => 
+                    player.name.toLowerCase().includes(searchInput)
+                );
+            }
+            currentPage = 1;
+            renderTable();
+            renderPagination();
+        }
+
+        // 按职业筛选
+        function filterByClass() {
+            const classFilter = document.getElementById('classFilter').value;
+            if (classFilter === '') {
+                currentData = [...processedData];
+            } else {
+                currentData = processedData.filter(player => 
+                    player.class === classFilter
+                );
+            }
+            currentPage = 1;
+            renderTable();
+            renderPagination();
+        }
+
+        // 排序表格
+        function sortTable(columnIndex) {
+            const columns = ['name', 'class', 'kills', 'assists', 'resources', 'playerDamage', 
+                            'buildingDamage', 'healing', 'damageTaken', 'deaths', 'feathers', 
+                            'bones', 'kd', 'dd'];
+            const column = columns[columnIndex];
+            
+            // 重置其他列的排序方向
+            document.querySelectorAll('th').forEach((th, index) => {
+                if (index !== columnIndex) {
+                    th.classList.remove('asc');
+                }
+            });
+            
+            // 切换当前列的排序方向
+            const th = document.querySelectorAll('th')[columnIndex];
+            if (sortColumn === column) {
+                sortDirection *= -1;
+            } else {
+                sortColumn = column;
+                sortDirection = 1;
+            }
+            
+            // 更新箭头显示
+            if (sortDirection === 1) {
+                th.classList.add('asc');
+            } else {
+                th.classList.remove('asc');
+            }
+            
+            // 排序数据
+            currentData.sort((a, b) => {
+                // 特殊处理玩家名字和职业的排序
+                if (column === 'name' || column === 'class') {
+                    const nameA = a[column].toLowerCase();
+                    const nameB = b[column].toLowerCase();
+                    return nameA.localeCompare(nameB) * sortDirection;
+                } else {
+                    // 数值排序
+                    const valueA = parseFloat(a[column]);
+                    const valueB = parseFloat(b[column]);
+                    return (valueA - valueB) * sortDirection;
+                }
+            });
+            
+            currentPage = 1;
+            renderTable();
+            renderPagination();
+        }
+
+        // 页面加载时初始化表格
+        window.onload = initTable;
+    </script>
+</body>
+</html>
