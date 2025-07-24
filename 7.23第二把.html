@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>约战数据展示</title>
+    <title>仗剑数据展示</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -14,6 +14,19 @@
         h1 {
             text-align: center;
             color: #333;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        .filter-container {
+            display: flex;
+            gap: 10px;
+        }
+        select, input {
+            padding: 5px;
         }
         .table-container {
             overflow-x: auto;
@@ -33,6 +46,8 @@
             background-color: #ff0000;
             color: white;
             cursor: pointer;
+            position: sticky;
+            top: 0;
         }
         tr:hover {
             background-color: #fcff00 !important;
@@ -45,45 +60,49 @@
             display: flex;
             justify-content: center;
             margin-top: 20px;
-        }
-        .pagination button {
-            margin: 0 5px;
-            padding: 5px 10px;
-            cursor: pointer;
+            gap: 10px;
         }
         .page-info {
             text-align: center;
             margin-bottom: 10px;
         }
-        .filter-container {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .filter-container select {
-            padding: 5px;
-            margin-right: 10px;
-        }
+        
+        /* 职业背景色 */
+        .潮光 { background-color: #99c4e7; }
+        .玄机 { background-color: #eadeac; }
+        .龙吟 { background-color: #73b29d; }
+        .沧澜 { background-color: #b2bced; }
+        .铁衣 { background-color: #e3a769; }
+        .九灵 { background-color: #8e50e1; }
+        .神相 { background-color: #3d367c; color: white; }
+        .素问 { background-color: #eaadb2; }
+        .血河 { background-color: #d95167; color: white; }
+        .碎梦 { background-color: #a6c9cf; }
     </style>
 </head>
 <body>
-    <h1>约战数据展示</h1>
-    <div class="filter-container">
-        <label for="class-filter">职业筛选：</label>
-        <select id="class-filter">
-            <option value="all">全部职业</option>
-            <option value="潮光">潮光</option>
-            <option value="玄机">玄机</option>
-            <option value="龙吟">龙吟</option>
-            <option value="沧澜">沧澜</option>
-            <option value="铁衣">铁衣</option>
-            <option value="九灵">九灵</option>
-            <option value="神相">神相</option>
-            <option value="素问">素问</option>
-            <option value="血河">血河</option>
-            <option value="碎梦">碎梦</option>
-        </select>
+    <h1>仗剑数据展示</h1>
+    
+    <div class="controls">
+        <div class="filter-container">
+            <select id="class-filter">
+                <option value="all">全部职业</option>
+                <option value="潮光">潮光</option>
+                <option value="玄机">玄机</option>
+                <option value="龙吟">龙吟</option>
+                <option value="沧澜">沧澜</option>
+                <option value="铁衣">铁衣</option>
+                <option value="九灵">九灵</option>
+                <option value="神相">神相</option>
+                <option value="素问">素问</option>
+                <option value="血河">血河</option>
+                <option value="碎梦">碎梦</option>
+            </select>
+            <input type="text" id="name-search" placeholder="搜索玩家名字">
+        </div>
+        <div class="page-info">第 <span id="current-page">1</span> 页，共 <span id="total-pages">1</span> 页</div>
     </div>
-    <div class="page-info">第 <span id="current-page">1</span> 页，共 <span id="total-pages">1</span> 页</div>
+    
     <div class="table-container">
         <table id="data-table">
             <thead>
@@ -109,13 +128,15 @@
             </tbody>
         </table>
     </div>
+    
     <div class="pagination">
         <button id="prev-page" disabled>上一页</button>
         <button id="next-page">下一页</button>
     </div>
 
     <script>
-        const data = [
+        // 原始数据
+        const rawData = [
             { "玩家名字": "安慰", "职业": "素问", "击败": 0, "助攻": 358, "资源": 0, "对玩家伤害": 599080, "对建筑伤害": 55021, "治疗值": 103863268, "承受伤害": 43111025, "重伤": 3, "化羽/清泉": 14, "焚骨": 0 },
             { "玩家名字": "赤練", "职业": "血河", "击败": 17, "助攻": 177, "资源": 260, "对玩家伤害": 65604292, "对建筑伤害": 130397, "治疗值": 3739904, "承受伤害": 56543435, "重伤": 8, "化羽/清泉": 0, "焚骨": 0 },
             { "玩家名字": "沈凝", "职业": "素问", "击败": 0, "助攻": 230, "资源": 0, "对玩家伤害": 1569919, "对建筑伤害": 10523, "治疗值": 109735626, "承受伤害": 61266859, "重伤": 3, "化羽/清泉": 18, "焚骨": 0 },
@@ -178,53 +199,44 @@
             { "玩家名字": "闻雁", "职业": "神相", "击败": 22, "助攻": 156, "资源": 0, "对玩家伤害": 82611209, "对建筑伤害": 2737157, "治疗值": 219363, "承受伤害": 40435796, "重伤": 9, "化羽/清泉": 0, "焚骨": 0 }
         ];
 
-        // 计算KD和拆D
-        data.forEach(row => {
+        // 处理数据：计算KD和拆D
+        const data = rawData.map(row => {
+            // 计算KD
             const kills = row.击败 === 0 ? 0.1 : row.击败;
             const deaths = row.重伤 === 0 ? 0.5 : row.重伤;
-            row.KD = (kills / deaths).toFixed(2);
-
+            const kd = (kills / deaths).toFixed(2);
+            
+            // 计算拆D
             const buildingDamage = row.对建筑伤害 === 0 ? 1 : row.对建筑伤害;
             const deathsForBuilding = row.重伤 === 0 ? 0.5 : row.重伤;
-            row.拆D = Math.round(buildingDamage / deathsForBuilding);
+            const buildingPerDeath = Math.round(buildingDamage / deathsForBuilding);
+            
+            return {
+                ...row,
+                KD: kd,
+                拆D: buildingPerDeath
+            };
         });
 
-        // 职业背景色映射
-        const classColors = {
-            "潮光": "#99c4e7",
-            "玄机": "#eadeac",
-            "龙吟": "#73b29d",
-            "沧澜": "#b2bced",
-            "铁衣": "#e3a769",
-            "九灵": "#8e50e1",
-            "神相": "#3d367c",
-            "素问": "#eaadb2",
-            "血河": "#d95167",
-            "碎梦": "#a6c9cf"
-        };
-
-        // 分页逻辑
+        // 分页设置
         const rowsPerPage = 100;
         let currentPage = 1;
-        const totalPages = Math.ceil(data.length / rowsPerPage);
-
-        function renderTable(page, filteredData = data) {
+        let totalPages = Math.ceil(data.length / rowsPerPage);
+        let currentData = [...data];
+        
+        // 渲染表格
+        function renderTable() {
             const tableBody = document.getElementById('table-body');
             tableBody.innerHTML = '';
-
-            const start = (page - 1) * rowsPerPage;
+            
+            const start = (currentPage - 1) * rowsPerPage;
             const end = start + rowsPerPage;
-            const paginatedData = filteredData.slice(start, end);
-
-            paginatedData.forEach(row => {
+            const pageData = currentData.slice(start, end);
+            
+            pageData.forEach(row => {
                 const tr = document.createElement('tr');
-                tr.style.backgroundColor = classColors[row.职业] || '#ffffff';
-
-                tr.addEventListener('click', () => {
-                    document.querySelectorAll('#table-body tr').forEach(r => r.classList.remove('selected'));
-                    tr.classList.add('selected');
-                });
-
+                tr.className = row.职业;
+                
                 tr.innerHTML = `
                     <td>${row.玩家名字}</td>
                     <td>${row.职业}</td>
@@ -241,57 +253,89 @@
                     <td>${row.KD}</td>
                     <td>${row.拆D}</td>
                 `;
-
+                
+                // 点击选中行
+                tr.addEventListener('click', () => {
+                    document.querySelectorAll('#table-body tr').forEach(r => r.classList.remove('selected'));
+                    tr.classList.add('selected');
+                });
+                
                 tableBody.appendChild(tr);
             });
-
-            document.getElementById('current-page').textContent = page;
-            document.getElementById('total-pages').textContent = Math.ceil(filteredData.length / rowsPerPage);
-            document.getElementById('prev-page').disabled = page === 1;
-            document.getElementById('next-page').disabled = page === Math.ceil(filteredData.length / rowsPerPage);
+            
+            // 更新分页信息
+            document.getElementById('current-page').textContent = currentPage;
+            document.getElementById('total-pages').textContent = Math.ceil(currentData.length / rowsPerPage);
+            document.getElementById('prev-page').disabled = currentPage === 1;
+            document.getElementById('next-page').disabled = currentPage === Math.ceil(currentData.length / rowsPerPage);
         }
-
+        
         // 初始化表格
-        renderTable(currentPage);
-
+        renderTable();
+        
         // 分页按钮事件
         document.getElementById('prev-page').addEventListener('click', () => {
             if (currentPage > 1) {
                 currentPage--;
-                renderTable(currentPage);
+                renderTable();
             }
         });
-
+        
         document.getElementById('next-page').addEventListener('click', () => {
-            if (currentPage < totalPages) {
+            if (currentPage < Math.ceil(currentData.length / rowsPerPage)) {
                 currentPage++;
-                renderTable(currentPage);
+                renderTable();
             }
         });
-
+        
         // 职业筛选
         document.getElementById('class-filter').addEventListener('change', (e) => {
             const selectedClass = e.target.value;
-            let filteredData = data;
-            if (selectedClass !== 'all') {
-                filteredData = data.filter(row => row.职业 === selectedClass);
+            if (selectedClass === 'all') {
+                currentData = [...data];
+            } else {
+                currentData = data.filter(row => row.职业 === selectedClass);
             }
             currentPage = 1;
-            renderTable(currentPage, filteredData);
+            renderTable();
         });
-
+        
+        // 玩家名字搜索
+        document.getElementById('name-search').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            if (searchTerm === '') {
+                currentData = [...data];
+            } else {
+                currentData = data.filter(row => 
+                    row.玩家名字.toLowerCase().includes(searchTerm)
+                );
+            }
+            currentPage = 1;
+            renderTable();
+        });
+        
         // 表头排序
         document.querySelectorAll('th').forEach(th => {
             th.addEventListener('click', () => {
                 const column = th.textContent;
                 if (column === '玩家名字' || column === '职业') return;
-
-                data.sort((a, b) => {
-                    if (a[column] === b[column]) return 0;
-                    return a[column] > b[column] ? -1 : 1;
+                
+                // 切换排序方向
+                const isAscending = th.getAttribute('data-sort') === 'asc';
+                th.setAttribute('data-sort', isAscending ? 'desc' : 'asc');
+                
+                // 排序数据
+                currentData.sort((a, b) => {
+                    const valA = a[column];
+                    const valB = b[column];
+                    
+                    if (valA === valB) return 0;
+                    return isAscending ? 
+                        (valA > valB ? 1 : -1) : 
+                        (valA > valB ? -1 : 1);
                 });
-
-                renderTable(currentPage);
+                
+                renderTable();
             });
         });
     </script>
