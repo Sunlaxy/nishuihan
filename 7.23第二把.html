@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>约战数据展示</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .filter {
+            display: flex;
+            gap: 10px;
+        }
+        select, button {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            background-color: #ff0000;
+            color: white;
+            cursor: pointer;
+            border: none;
+        }
+        button:hover {
+            background-color: #cc0000;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th {
+            background-color: #ff0000;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+        }
+        td {
+            padding: 8px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+        }
+        tr:hover {
+            background-color: #fcff00 !important;
+        }
+        tr.selected {
+            background-color: #ff0000 !important;
+            color: white;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .page-btn {
+            padding: 5px 10px;
+            border: 1px solid #ccc;
+            background-color: #f0f0f0;
+            cursor: pointer;
+        }
+        .page-btn.active {
+            background-color: #ff0000;
+            color: white;
+        }
+        /* 职业背景色 */
+        .潮光 { background-color: #99c4e7; }
+        .玄机 { background-color: #eadeac; }
+        .龙吟 { background-color: #73b29d; }
+        .沧澜 { background-color: #b2bced; }
+        .铁衣 { background-color: #e3a769; }
+        .九灵 { background-color: #8e50e1; }
+        .神相 { background-color: #3d367c; color: white; }
+        .素问 { background-color: #eaadb2; }
+        .血河 { background-color: #d95167; color: white; }
+        .碎梦 { background-color: #a6c9cf; }
+    </style>
+</head>
+<body>
+    <h1>仗剑约战数据</h1>
+    <div class="controls">
+        <div class="filter">
+            <select id="profession-filter">
+                <option value="all">全部职业</option>
+                <option value="潮光">潮光</option>
+                <option value="玄机">玄机</option>
+                <option value="龙吟">龙吟</option>
+                <option value="沧澜">沧澜</option>
+                <option value="铁衣">铁衣</option>
+                <option value="九灵">九灵</option>
+                <option value="神相">神相</option>
+                <option value="素问">素问</option>
+                <option value="血河">血河</option>
+                <option value="碎梦">碎梦</option>
+            </select>
+            <button id="filter-btn">筛选</button>
+        </div>
+        <div>
+            <button id="reset-btn">重置</button>
+        </div>
+    </div>
+    <table id="data-table">
+        <thead>
+            <tr>
+                <th data-sort="name">玩家名字</th>
+                <th data-sort="profession">职业</th>
+                <th data-sort="defeat">击败</th>
+                <th data-sort="assist">助攻</th>
+                <th data-sort="resource">资源</th>
+                <th data-sort="damage">对玩家伤害</th>
+                <th data-sort="building-damage">对建筑伤害</th>
+                <th data-sort="heal">治疗值</th>
+                <th data-sort="taken-damage">承受伤害</th>
+                <th data-sort="death">重伤</th>
+                <th data-sort="kd">KD</th>
+                <th data-sort="building-death">拆D</th>
+            </tr>
+        </thead>
+        <tbody id="table-body">
+            <!-- 数据将通过JavaScript动态填充 -->
+        </tbody>
+    </table>
+    <div class="pagination" id="pagination">
+        <!-- 分页按钮将通过JavaScript动态生成 -->
+    </div>
+
+    <script>
+        // 原始数据
+        const rawData = [
+            { name: "安慰", profession: "素问", defeat: 0, assist: 358, resource: 0, damage: 599080, buildingDamage: 55021, heal: 103863268, takenDamage: 43111025, death: 3, feather: 14, bone: 0 },
+            { name: "赤練", profession: "血河", defeat: 17, assist: 177, resource: 260, damage: 65604292, buildingDamage: 130397, heal: 3739904, takenDamage: 56543435, death: 8, feather: 0, bone: 0 },
+            { name: "沈凝", profession: "素问", defeat: 0, assist: 230, resource: 0, damage: 1569919, buildingDamage: 10523, heal: 109735626, takenDamage: 61266859, death: 3, feather: 18, bone: 0 },
+            { name: "浪情", profession: "铁衣", defeat: 3, assist: 75, resource: 260, damage: 4624783, buildingDamage: 17529656, heal: 0, takenDamage: 61016435, death: 4, feather: 0, bone: 0 },
+            { name: "破盾", profession: "沧澜", defeat: 25, assist: 120, resource: 0, damage: 78026017, buildingDamage: 1611539, heal: 8000, takenDamage: 39595042, death: 15, feather: 0, bone: 0 },
+            { name: "洄梦", profession: "碎梦", defeat: 15, assist: 116, resource: 260, damage: 49377923, buildingDamage: 131032, heal: 176551, takenDamage: 39009897, death: 9, feather: 0, bone: 0 },
+            { name: "暮雪凉风知谁意", profession: "龙吟", defeat: 33, assist: 124, resource: 0, damage: 97076153, buildingDamage: 1911104, heal: 181726, takenDamage: 29902707, death: 5, feather: 0, bone: 0 },
+            { name: "虾球", profession: "素问", defeat: 0, assist: 183, resource: 0, damage: 171011, buildingDamage: 22143, heal: 78274183, takenDamage: 15389331, death: 1, feather: 11, bone: 0 },
+            { name: "酒旧", profession: "九灵", defeat: 14, assist: 200, resource: 260, damage: 62657278, buildingDamage: 681266, heal: 12000, takenDamage: 26441898, death: 7, feather: 0, bone: 64 },
+            { name: "无梦", profession: "沧澜", defeat: 0, assist: 20, resource: 0, damage: 4568391, buildingDamage: 9530970, heal: 1452686, takenDamage: 42169328, death: 1, feather: 0, bone: 0 },
+            { name: "顶级", profession: "龙吟", defeat: 2, assist: 20, resource: 0, damage: 8986054, buildingDamage: 61030902, heal: 0, takenDamage: 26113008, death: 4, feather: 0, bone: 0 },
+            { name: "漁火", profession: "潮光", defeat: 15, assist: 207, resource: 0, damage: 43791396, buildingDamage: 1116345, heal: 1441340, takenDamage: 29762271, death: 10, feather: 13, bone: 0 },
+            { name: "酷炫派总", profession: "九灵", defeat: 12, assist: 148, resource: 0, damage: 57024747, buildingDamage: 1255089, heal: 4000, takenDamage: 27666406, death: 6, feather: 0, bone: 34 },
+            { name: "呼噜噜", profession: "沧澜", defeat: 33, assist: 84, resource: 520, damage: 85866844, buildingDamage: 569110, heal: 0, takenDamage: 30624715, death: 4, feather: 0, bone: 0 },
+            { name: "奶布", profession: "素问", defeat: 0, assist: 331, resource: 0, damage: 1689586, buildingDamage: 107924, heal: 136245201, takenDamage: 85959060, death: 5, feather: 11, bone: 0 },
+            { name: "花语绵", profession: "神相", defeat: 21, assist: 141, resource: 0, damage: 74611226, buildingDamage: 1377481, heal: 269679, takenDamage: 29242484, death: 5, feather: 0, bone: 0 },
+            { name: "空念仏", profession: "玄机", defeat: 0, assist: 18, resource: 0, damage: 9338037, buildingDamage: 68202746, heal: 0, takenDamage: 16230481, death: 13, feather: 0, bone: 0 },
+            { name: "山竹", profession: "碎梦", defeat: 26, assist: 93, resource: 0, damage: 40808837, buildingDamage: 533628, heal: 241448, takenDamage: 39779770, death: 11, feather: 0, bone: 0 },
+            { name: "懒大王", profession: "素问", defeat: 0, assist: 204, resource: 0, damage: 264516, buildingDamage: 74626, heal: 84922482, takenDamage: 48672414, death: 3, feather: 10, bone: 0 },
+            { name: "枢玖", profession: "素问", defeat: 0, assist: 35, resource: 0, damage: 548105, buildingDamage: 232205, heal: 84470431, takenDamage: 43669833, death: 5, feather: 12, bone: 0 },
+            { name: "玩你", profession: "九灵", defeat: 19, assist: 109, resource: 780, damage: 73921620, buildingDamage: 137653, heal: 4000, takenDamage: 28576085, death: 8, feather: 0, bone: 40 },
+            { name: "子亦", profession: "龙吟", defeat: 38, assist: 219, resource: 0, damage: 111397043, buildingDamage: 973142, heal: 16000, takenDamage: 22497294, death: 8, feather: 0, bone: 0 },
+            { name: "冷清", profession: "素问", defeat: 0, assist: 252, resource: 0, damage: 831150, buildingDamage: 592163, heal: 134546535, takenDamage: 64295700, death: 3, feather: 8, bone: 0 },
+            { name: "小瓜白菜", profession: "碎梦", defeat: 40, assist: 50, resource: 0, damage: 72246365, buildingDamage: 868586, heal: 18000, takenDamage: 29132395, death: 9, feather: 0, bone: 0 },
+            { name: "小寂", profession: "素问", defeat: 1, assist: 310, resource: 0, damage: 1204260, buildingDamage: 26646, heal: 121576893, takenDamage: 29882755, death: 5, feather: 8, bone: 0 },
+            { name: "羊毛", profession: "铁衣", defeat: 0, assist: 18, resource: 0, damage: 8607053, buildingDamage: 57841201, heal: 4000, takenDamage: 69190612, death: 3, feather: 0, bone: 0 },
+            { name: "愿与", profession: "素问", defeat: 0, assist: 186, resource: 0, damage: 898226, buildingDamage: 153451, heal: 102121789, takenDamage: 50945378, death: 2, feather: 10, bone: 0 },
+            { name: "一逍", profession: "碎梦", defeat: 5, assist: 50, resource: 0, damage: 14947843, buildingDamage: 104795674, heal: 0, takenDamage: 15470341, death: 5, feather: 0, bone: 0 },
+            { name: "小绵羊", profession: "神相", defeat: 28, assist: 175, resource: 0, damage: 92910479, buildingDamage: 2751394, heal: 602788, takenDamage: 41248142, death: 5, feather: 0, bone: 0 },
+            { name: "小咩", profession: "玄机", defeat: 2, assist: 80, resource: 0, damage: 16974295, buildingDamage: 87431912, heal: 0, takenDamage: 22835386, death: 7, feather: 0, bone: 0 },
+            { name: "不爱吃橙子", profession: "碎梦", defeat: 2, assist: 41, resource: 0, damage: 8086409, buildingDamage: 72374721, heal: 157453, takenDamage: 26185316, death: 9, feather: 0, bone: 0 },
+            { name: "摸一嗷", profession: "神相", defeat: 49, assist: 221, resource: 0, damage: 144018125, buildingDamage: 4059541, heal: 597086, takenDamage: 56968648, death: 5, feather: 0, bone: 0 },
+            { name: "弗良", profession: "铁衣", defeat: 0, assist: 133, resource: 0, damage: 6609551, buildingDamage: 5633424, heal: 4060103, takenDamage: 153954456, death: 2, feather: 0, bone: 0 },
+            { name: "诀劣", profession: "潮光", defeat: 1, assist: 17, resource: 0, damage: 7618213, buildingDamage: 38227076, heal: 1198491, takenDamage: 34751310, death: 7, feather: 7, bone: 0 },
+            { name: "酒侍", profession: "神相", defeat: 22, assist: 145, resource: 260, damage: 108836392, buildingDamage: 1166200, heal: 439658, takenDamage: 64474394, death: 8, feather: 0, bone: 0 },
+            { name: "霜华", profession: "素问", defeat: 0, assist: 284, resource: 520, damage: 1202453, buildingDamage: 16522, heal: 153117808, takenDamage: 55955691, death: 2, feather: 8, bone: 0 },
+            { name: "羊咩咩", profession: "素问", defeat: 0, assist: 350, resource: 0, damage: 2343321, buildingDamage: 151951, heal: 117709207, takenDamage: 62673588, death: 5, feather: 14, bone: 0 },
+            { name: "十个风", profession: "碎梦", defeat: 40, assist: 77, resource: 0, damage: 60826596, buildingDamage: 241476, heal: 16000, takenDamage: 31971436, death: 8, feather: 0, bone: 0 },
+            { name: "脆菜", profession: "九灵", defeat: 11, assist: 188, resource: 0, damage: 32500093, buildingDamage: 2728879, heal: 1429763, takenDamage: 56488403, death: 10, feather: 0, bone: 92 },
+            { name: "霜露", profession: "龙吟", defeat: 6, assist: 80, resource: 0, damage: 47629993, buildingDamage: 421696, heal: 172632, takenDamage: 23162555, death: 9, feather: 0, bone: 0 },
+            { name: "青椒椒", profession: "素问", defeat: 0, assist: 27, resource: 0, damage: 667276, buildingDamage: 221284, heal: 81109234, takenDamage: 37830520, death: 2, feather: 7, bone: 0 },
+            { name: "保存", profession: "潮光", defeat: 0, assist: 16, resource: 0, damage: 7421672, buildingDamage: 63764391, heal: 1343742, takenDamage: 10054077, death: 8, feather: 9, bone: 0 },
+            { name: "偷笑", profession: "玄机", defeat: 1, assist: 17, resource: 0, damage: 9766504, buildingDamage: 79507667, heal: 0, takenDamage: 27901424, death: 8, feather: 0, bone: 0 },
+            { name: "伍个橙", profession: "九灵", defeat: 13, assist: 149, resource: 0, damage: 56921943, buildingDamage: 865478, heal: 0, takenDamage: 40685468, death: 10, feather: 0, bone: 20 },
+            { name: "柒个白", profession: "玄机", defeat: 8, assist: 169, resource: 0, damage: 62507118, buildingDamage: 2097602, heal: 60000, takenDamage: 57302441, death: 8, feather: 0, bone: 0 },
+            { name: "小破梦", profession: "沧澜", defeat: 23, assist: 119, resource: 0, damage: 58684737, buildingDamage: 2463223, heal: 0, takenDamage: 48587350, death: 11, feather: 0, bone: 0 },
+            { name: "念词", profession: "素问", defeat: 0, assist: 358, resource: 260, damage: 1655221, buildingDamage: 29388, heal: 118962556, takenDamage: 48214190, death: 3, feather: 11, bone: 0 },
+            { name: "白无瑕", profession: "血河", defeat: 10, assist: 128, resource: 260, damage: 65912355, buildingDamage: 115297, heal: 2504461, takenDamage: 54732030, death: 6, feather: 0, bone: 0 },
+            { name: "唐青青", profession: "血河", defeat: 5, assist: 32, resource: 8840, damage: 16566686, buildingDamage: 111740, heal: 1319531, takenDamage: 11033171, death: 2, feather: 0, bone: 0 },
+            { name: "寒落", profession: "龙吟", defeat: 12, assist: 72, resource: 260, damage: 22941173, buildingDamage: 67087309, heal: 10000, takenDamage: 31902329, death: 7, feather: 0, bone: 0 },
+            { name: "若叶睦丶", profession: "九灵", defeat: 11, assist: 213, resource: 0, damage: 43953187, buildingDamage: 959723, heal: 2650972, takenDamage: 46706581, death: 11, feather: 0, bone: 86 },
+            { name: "山阴遇羽客", profession: "血河", defeat: 12, assist: 98, resource: 0, damage: 73438516, buildingDamage: 56342, heal: 5284158, takenDamage: 78889680, death: 12, feather: 0, bone: 0 },
+            { name: "不羁", profession: "神相", defeat: 33, assist: 218, resource: 0, damage: 112959391, buildingDamage: 5808215, heal: 642613, takenDamage: 51217658, death: 12, feather: 0, bone: 0 },
+            { name: "应溪", profession: "潮光", defeat: 11, assist: 177, resource: 520, damage: 57787095, buildingDamage: 647099, heal: 1770860, takenDamage: 43794789, death: 4, feather: 12, bone: 0 },
+            { name: "压力越大我越菜", profession: "沧澜", defeat: 1, assist: 18, resource: 0, damage: 8224178, buildingDamage: 58427674, heal: 4000, takenDamage: 30880346, death: 8, feather: 0, bone: 0 },
+            { name: "漣漪", profession: "潮光", defeat: 1, assist: 65, resource: 0, damage: 12599210, buildingDamage: 77870997, heal: 1958468, takenDamage: 19985264, death: 5, feather: 11, bone: 0 },
+            { name: "大漠孤狼", profession: "沧澜", defeat: 1, assist: 12, resource: 0, damage: 7747288, buildingDamage: 67086582, heal: 0, takenDamage: 34623625, death: 6, feather: 0, bone: 0 },
+            { name: "米妮", profession: "素问", defeat: 0, assist: 53, resource: 0, damage: 1186988, buildingDamage: 2393904, heal: 84069430, takenDamage: 30090067, death: 4, feather: 7, bone: 0 },
+            { name: "爱惜", profession: "九灵", defeat: 3, assist: 91, resource: 0, damage: 10643304, buildingDamage: 58318134, heal: 87059, takenDamage: 40868926, death: 7, feather: 0, bone: 18 },
+            { name: "闻雁", profession: "神相", defeat: 22, assist: 156, resource: 0, damage: 82611209, buildingDamage: 2737157, heal: 219363, takenDamage: 40435796, death: 9, feather: 0, bone: 0 },
+        ];
+
+        // 计算KD和拆D
+        const processedData = rawData.map(item => {
+            const defeat = item.defeat === 0 ? 0.1 : item.defeat;
+            const death = item.death === 0 ? 0.5 : item.death;
+            const buildingDamage = item.buildingDamage === 0 ? 1 : item.buildingDamage;
+
+            const kd = (defeat / death).toFixed(2);
+            const buildingDeath = Math.round(buildingDamage / death);
+
+            return {
+                ...item,
+                kd,
+                buildingDeath
+            };
+        });
+
+        // 分页逻辑
+        let currentPage = 1;
+        const rowsPerPage = 100;
+        let filteredData = [...processedData];
+
+        // 渲染表格
+        function renderTable(data, page) {
+            const tableBody = document.getElementById('table-body');
+            tableBody.innerHTML = '';
+
+            const start = (page - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+            const paginatedData = data.slice(start, end);
+
+            paginatedData.forEach(item => {
+                const row = document.createElement('tr');
+                row.className = item.profession;
+                row.innerHTML = `
+                    <td>${item.name}</td>
+                    <td>${item.profession}</td>
+                    <td>${item.defeat}</td>
+                    <td>${item.assist}</td>
+                    <td>${item.resource}</td>
+                    <td>${item.damage}</td>
+                    <td>${item.buildingDamage}</td>
+                    <td>${item.heal}</td>
+                    <td>${item.takenDamage}</td>
+                    <td>${item.death}</td>
+                    <td>${item.kd}</td>
+                    <td>${item.buildingDeath}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            // 添加行点击事件
+            const rows = document.querySelectorAll('#table-body tr');
+            rows.forEach(row => {
+                row.addEventListener('click', () => {
+                    rows.forEach(r => r.classList.remove('selected'));
+                    row.classList.add('selected');
+                });
+            });
+
+            // 渲染分页
+            renderPagination(data.length);
+        }
+
+        // 渲染分页按钮
+        function renderPagination(totalRows) {
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = '';
+
+            const totalPages = Math.ceil(totalRows / rowsPerPage);
+            if (totalPages <= 1) return;
+
+            for (let i = 1; i <= totalPages; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.className = 'page-btn';
+                if (i === currentPage) pageBtn.classList.add('active');
+                pageBtn.textContent = i;
+                pageBtn.addEventListener('click', () => {
+                    currentPage = i;
+                    renderTable(filteredData, currentPage);
+                });
+                pagination.appendChild(pageBtn);
+            }
+        }
+
+        // 表头排序
+        function setupSorting() {
+            const headers = document.querySelectorAll('th[data-sort]');
+            headers.forEach(header => {
+                header.addEventListener('click', () => {
+                    const sortKey = header.getAttribute('data-sort');
+                    filteredData.sort((a, b) => {
+                        if (sortKey === 'name' || sortKey === 'profession') {
+                            return b[sortKey].localeCompare(a[sortKey]);
+                        } else {
+                            return parseFloat(b[sortKey]) - parseFloat(a[sortKey]);
+                        }
+                    });
+                    currentPage = 1;
+                    renderTable(filteredData, currentPage);
+                });
+            });
+        }
+
+        // 职业筛选
+        document.getElementById('filter-btn').addEventListener('click', () => {
+            const profession = document.getElementById('profession-filter').value;
+            if (profession === 'all') {
+                filteredData = [...processedData];
+            } else {
+                filteredData = processedData.filter(item => item.profession === profession);
+            }
+            currentPage = 1;
+            renderTable(filteredData, currentPage);
+        });
+
+        // 重置
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            document.getElementById('profession-filter').value = 'all';
+            filteredData = [...processedData];
+            currentPage = 1;
+            renderTable(filteredData, currentPage);
+        });
+
+        // 初始化
+        renderTable(filteredData, currentPage);
+        setupSorting();
+    </script>
+</body>
+</html>
